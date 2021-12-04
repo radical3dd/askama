@@ -83,6 +83,7 @@ pub(crate) struct TemplateArgs {
     pub(crate) ext: Option<String>,
     pub(crate) syntax: Option<String>,
     pub(crate) config_path: Option<String>,
+    pub(crate) block: Option<String>,
 }
 
 impl TemplateArgs {
@@ -180,6 +181,12 @@ impl TemplateArgs {
                     args.config_path = Some(s.value())
                 } else {
                     return Err("config value must be string literal".into());
+                }
+            } else if ident == "block" {
+                if let syn::Lit::Str(ref s) = pair.lit {
+                   args.block = Some(s.value());
+                } else {
+                    return Err("block value must be string literal".into());
                 }
             } else {
                 return Err(format!("unsupported attribute key {:?} found", ident).into());
@@ -317,6 +324,23 @@ impl<'a> Generator<'a> {
         Ok(buf.buf)
     }
 
+    fn try_find_block_nodes(
+        &mut self,
+        block_name: &str,
+        nodes: &'a [Node<'a>],
+    ) -> Option<&'a [Node<'a>]> {
+        nodes.iter().find_map(|n| match n {
+            Node::BlockDef(_, name, block_nodes, _) => {
+                if *name == block_name {
+                    Some(block_nodes.as_slice())
+                } else {
+                    self.try_find_block_nodes(block_name, block_nodes.as_slice())
+                }
+            }
+            _ => None,
+        })
+    }
+
     // Implement `Template` for the given context struct.
     fn impl_template(
         &mut self,
@@ -347,11 +371,23 @@ impl<'a> Generator<'a> {
             }
         }
 
-        let size_hint = if let Some(heritage) = self.heritage {
-            self.handle(heritage.root, heritage.root.nodes, buf, AstLevel::Top)
+        let root = if let Some(heritage) = self.heritage {
+            heritage.root
         } else {
-            self.handle(ctx, ctx.nodes, buf, AstLevel::Top)
-        }?;
+            ctx
+        };
+
+        let nodes = if let Some(block_name) = &self.input.block {
+            if let Some(block_nodes) = self.try_find_block_nodes(block_name, ctx.nodes) {
+                block_nodes
+            } else {
+                return Err(format!("cannot find block {}", block_name).into());
+            }
+        } else {
+            root.nodes
+        };
+
+        let size_hint = self.handle(root, nodes, buf, AstLevel::Top)?;
 
         self.flush_ws(Ws(None, None));
         buf.writeln("::askama::Result::Ok(())")?;
