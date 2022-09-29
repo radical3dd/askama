@@ -17,6 +17,7 @@ pub(crate) struct TemplateInput<'a> {
     pub(crate) ext: Option<String>,
     pub(crate) mime_type: String,
     pub(crate) path: PathBuf,
+    pub(crate) block: Option<String>,
 }
 
 impl TemplateInput<'_> {
@@ -34,6 +35,7 @@ impl TemplateInput<'_> {
             escaping,
             ext,
             syntax,
+            block,
             ..
         } = args;
 
@@ -95,6 +97,7 @@ impl TemplateInput<'_> {
             ext,
             mime_type,
             path,
+            block
         })
     }
 

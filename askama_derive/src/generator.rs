@@ -83,6 +83,7 @@ pub(crate) struct TemplateArgs {
     pub(crate) ext: Option<String>,
     pub(crate) syntax: Option<String>,
     pub(crate) config_path: Option<String>,
+    pub(crate) block: Option<String>,
 }
 
 impl TemplateArgs {
@@ -180,6 +181,12 @@ impl TemplateArgs {
                     args.config_path = Some(s.value())
                 } else {
                     return Err("config value must be string literal".into());
+                }
+            } else if ident == "block" {
+                if let syn::Lit::Str(ref s) = pair.lit {
+                   args.block = Some(s.value());
+                } else {
+                    return Err("block value must be string literal".into());
                 }
             } else {
                 return Err(format!("unsupported attribute key {:?} found", ident).into());
