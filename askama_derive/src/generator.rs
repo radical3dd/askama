@@ -337,6 +337,9 @@ impl<'a> Generator<'a> {
                     self.try_find_block_nodes(block_name, block_nodes.as_slice())
                 }
             }
+            Node::Loop(l) => self
+                .try_find_block_nodes(block_name, l.body.as_slice())
+                .or_else(|| self.try_find_block_nodes(block_name, l.else_block.as_slice())),
             _ => None,
         })
     }
@@ -373,6 +376,11 @@ impl<'a> Generator<'a> {
 
         let root = if let Some(heritage) = self.heritage {
             heritage.root
+            if self.input.block.is_none() {
+                heritage.root
+            } else {
+                ctx
+            }
         } else {
             ctx
         };
