@@ -375,7 +375,6 @@ impl<'a> Generator<'a> {
         }
 
         let root = if let Some(heritage) = self.heritage {
-            heritage.root
             if self.input.block.is_none() {
                 heritage.root
             } else {
